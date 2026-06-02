@@ -43,8 +43,8 @@ const char *celFragmentShader =
     "    vec3 lightDir = normalize(lightDirection);\n"
     "    float diffuse = max(dot(normal, lightDir), 0.0);\n"
     "    if (diffuse > 0.75) diffuse = 1.0;\n"
-    "    else if (diffuse > 0.40) diffuse = 0.65;\n"
-    "    else diffuse = 0.20;\n"
+    "    else diffuse = 0.50;\n"
+    //"    else diffuse = 0.20;\n"
     "    float ambient = 0.15;\n"
     
     // CÁLCULO DO GLOSSY DINÂMICO

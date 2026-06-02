@@ -17,7 +17,7 @@ int main(void)
     camera.fovy = 45.0f;
     camera.projection = CAMERA_PERSPECTIVE;
 
-    Model models[4];
+    Model models[3];
     models[0] = LoadModelFromMesh(GenMeshSphere(1.0f, 32, 32));
     models[1] = LoadModel("assets/bee.obj");
     models[2] = LoadModel("assets/link.glb");
@@ -33,7 +33,7 @@ int main(void)
         models[m].materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = texture;
     }
 
-    for (int m = 0; m < 4; m++)
+    for (int m = 0; m < 3; m++)
     {
         for (int i = 0; i < models[m].materialCount; i++)
         {
@@ -51,7 +51,9 @@ int main(void)
 
     while (!WindowShouldClose())
     {
+        
         UpdateCamera(&camera, CAMERA_FREE);
+        DisableCursor();
 
         Vector3 lightDir;
         if (orbitalLight) {
@@ -84,7 +86,7 @@ int main(void)
                 lightDir,    
                 camera.position,                
                 BLACK,                       
-                0.05f,
+                0.03f,
                 highlightEnabled
             );
         }
@@ -105,7 +107,8 @@ int main(void)
     UnloadShader(celShader);
     UnloadShader(lambertShader);
     UnloadShader(outlineShader); 
-    for (int m = 0; m < 2; m++) UnloadModel(models[m]);
+    for (int m = 0; m < 3; m++) UnloadModel(models[m]);
+    EnableCursor();
 
     CloseWindow();
     return 0;

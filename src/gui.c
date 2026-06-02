@@ -20,9 +20,20 @@ int DrawGUI(int activeModelIndex, bool *useCelShading, bool *orbitalLight, bool 
     DrawText("0 - Toggle Highlight", 10, 130, 20, DARKGRAY);
     DrawText(*highlightEnabled ? "Highlight: ON" : "Highlight: OFF", 10, 160, 20, MAROON);
 
+    if (IsKeyPressed(KEY_TAB)) {
+            if (IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL)) {
+                // CTRL + TAB: Volta para o modelo anterior
+                activeModelIndex = (activeModelIndex - 1 + 4) % 4; 
+            }
+            else {
+                // TAB: Avança para o próximo modelo
+                activeModelIndex = (activeModelIndex + 1) % 4;
+            }
+        }
+
     GuiToggleGroup(
         (Rectangle){ 10, 200, 120, 30 }, // Descemos um pouco o menu para caber os textos
-        "Esfera;Abelha;Link Ocarina;Bee", 
+        "Esfera;Abelha;Link Ocarina", 
         &activeModelIndex
     );
 
