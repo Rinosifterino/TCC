@@ -19,7 +19,7 @@ int main(void)
 
     Model models[3];
     models[0] = LoadModelFromMesh(GenMeshSphere(1.0f, 32, 32));
-    models[1] = LoadModel("assets/bee.obj");
+    models[1] = LoadModel("assets/tree.glb");
     models[2] = LoadModel("assets/link.glb");
     int activeModelIndex = 0;
 

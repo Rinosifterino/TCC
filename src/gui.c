@@ -33,7 +33,7 @@ int DrawGUI(int activeModelIndex, bool *useCelShading, bool *orbitalLight, bool 
 
     GuiToggleGroup(
         (Rectangle){ 10, 200, 120, 30 }, // Descemos um pouco o menu para caber os textos
-        "Esfera;Abelha;Link Ocarina", 
+        "Esfera;Arvore;Link Ocarina", 
         &activeModelIndex
     );
 
