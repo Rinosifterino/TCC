@@ -1,101 +1,132 @@
-# Motor 3D - TCC
+# Motor 3D / Cel Shading - TCC
 
-Este projeto é desenvolvido em **C** utilizando a biblioteca **raylib** e o sistema de build **CMake**. 
+Projeto desenvolvido em **C (C99)** utilizando **raylib** e **raygui** para demonstração e comparação de técnicas de renderização 3D (**Lambert Shading** vs. **Cel Shading** com contorno e highlight especular).
 
-O gerenciamento da dependência da raylib é feito de forma automática via `FetchContent` no CMake. Isso significa que o próprio sistema de build se encarrega de baixar e compilar a versão correta da biblioteca diretamente do repositório oficial, garantindo que o projeto rode em qualquer máquina com um simples `git clone`.
+A compilação é gerenciada via **Makefile** e, no Windows, o projeto já inclui os cabeçalhos (`include/`), a biblioteca pré-compilada 64-bit (`lib/`) e o script de provisionamento automático do compilador (`setup.ps1`).
 
 ---
 
-## 📂 Estrutura do Repositório
-
-Para que o projeto funcione corretamente, mantenha a seguinte estrutura de arquivos:
+## 📂 Estrutura do Projeto
 
 ```text
+TCC/
 ├── .gitignore
-├── CMakeLists.txt
-├── README.md
-└── src/
-    └── main.c
+├── Makefile              # Regras de compilação (Windows e Linux)
+├── README.md             # Este guia
+├── setup.ps1             # Baixa e configura o w64devkit (x64) no Windows
+├── assets/               # Modelos 3D e texturas carregados em tempo de execução
+│   ├── link.glb
+│   ├── tree.glb
+│   └── wood.png
+├── include/              # Cabeçalhos da raylib e raygui
+│   ├── raygui.h
+│   ├── raylib.h
+│   ├── raymath.h
+│   └── rlgl.h
+├── lib/                  # Bibliotecas pré-compiladas da raylib (Windows x86_64)
+│   ├── libraylib.a
+│   ├── libraylibdll.a
+│   └── raylib.dll
+└── src/                  # Código-fonte do projeto
+    ├── main.c            # Loop principal, câmera, carregamento de modelos e shaders
+    ├── gui.c / gui.h     # Interface gráfica (raygui) e atalhos de teclado
+    ├── celShader.c / .h  # Shaders de Cel Shading e Outline (contorno)
+    └── lambertShader.c   # Shader de iluminação difusa (Lambert)
 ```
 
 ---
 
-## 🛠️ Pré-requisitos
+## 🚀 Como Compilar e Rodar no Windows (Passo a Passo)
 
-O projeto requer um compilador C (GCC) e o CMake instalados.
+### 1. Abrir o terminal na pasta correta
+Abra o **PowerShell** e navegue até a pasta `TCC` (onde estão localizados o `Makefile` e o `setup.ps1`):
+```powershell
+cd caminho\para\TCC
+```
 
-### 🔹 Windows (Ambiente Portátil / Sem Admin)
-Se você estiver rodando o projeto em um computador bloqueado ou sem privilégios de administrador:
-1. Baixe a versão autoextraível do **w64devkit** (`w64devkit-x64-*.7z.exe`) na [página de releases do GitHub](https://github.com/skeeto/w64devkit/releases).
-2. Extraia o conteúdo em uma pasta de fácil acesso (ex: `C:\Users\SeuUsuario\Documents\w64devkit`).
-3. Abra o PowerShell na pasta raiz do projeto e carregue os binários do compilador temporariamente no PATH antes de compilar:
-   ```powershell
-   $env:PATH = "C:\Caminho\Ate\O\w64devkit\bin;" + $env:PATH
+### 2. Configurar o compilador (`setup.ps1`)
+Execute o script `setup.ps1`:
+```powershell
+.\setup.ps1
+```
+**O que esse comando faz:**
+- Verifica se a pasta `w64devkit` já existe dentro do projeto.
+- Caso não exista, baixa automaticamente o **w64devkit v2.8.0 (x64 / 64-bit)** do GitHub, extrai na pasta `TCC\w64devkit` e remove o instalador temporário.
+- Adiciona `TCC\w64devkit\bin` **no início do `PATH`** da sessão atual do PowerShell (garantindo que o `gcc` e o `make` de 64 bits sejam usados).
+
+> **⚠️ Caso o PowerShell bloqueie a execução do `.ps1`:**
+> Rode o comando abaixo para liberar a execução apenas na janela atual do terminal e depois rode o `.\setup.ps1` novamente:
+> ```powershell
+> Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+> .\setup.ps1
+> ```
+
+> **💡 Observação importante:** O `setup.ps1` altera o `PATH` apenas da janela atual do PowerShell. Sempre que abrir um novo terminal para compilar, rode `.\setup.ps1` antes do `make` (como a pasta `w64devkit` já estará baixada, ele pulará o download e configurará o `PATH` instantaneamente).
+
+### 3. Compilar o projeto (`make`)
+No mesmo terminal onde rodou o `setup.ps1`, execute:
+```powershell
+make
+```
+Isso criará a pasta `build/` e gerará o executável `build/MeuTCC.exe`.
+
+### 4. Executar a aplicação
+Ainda **dentro da pasta `TCC`** (necessário para que o executável encontre os arquivos em `assets/`), execute:
+```powershell
+.\build\MeuTCC.exe
+```
+
+---
+
+## 🐧 Como Compilar e Rodar no Linux (Debian/Ubuntu)
+
+1. Instale o `gcc`, `make` e as dependências da `raylib`:
+   ```bash
+   sudo apt update
+   sudo apt install build-essential libraylib-dev
+   ```
+2. Na pasta `TCC/`, compile o projeto:
+   ```bash
+   make
+   ```
+3. Execute a partir da pasta `TCC/`:
+   ```bash
+   ./build/MeuTCC
    ```
 
-### 🔹 Linux (Debian/Ubuntu)
-Instale o compilador, CMake e as dependências gráficas da raylib via terminal:
-```bash
-sudo apt update
-sudo apt install build-essential cmake libasound2-dev libx11-dev libxrandr-dev libxi-dev libxinerama-dev libxcursor-dev libgl1-mesa-dev
-```
+---
+
+## 🎮 Controles da Aplicação
+
+Durante a execução do `MeuTCC`:
+
+| Tecla / Controle | Ação |
+| :--- | :--- |
+| **Mouse** | Rotaciona a câmera 3D (`CAMERA_FREE`) |
+| **W, A, S, D** | Movimenta a câmera pelo cenário |
+| **Scroll do Mouse** | Zoom in / Zoom out |
+| **`1`** | Alterna para o modo **Lambert Shading** (Default) |
+| **`2`** | Alterna para o modo **Cel Shading** (com contorno) |
+| **`9`** | Liga / Desliga a **Luz Orbital** (luz girando ou estática) |
+| **`0`** | Liga / Desliga o **Highlight** especular (no modo Cel Shading) |
+| **`TAB`** | Avança para o próximo modelo 3D (Esfera → Árvore → Link) |
+| **`Ctrl + TAB`** | Volta para o modelo 3D anterior |
+| **`ESC`** | Fecha a aplicação |
 
 ---
 
-## 🚀 Como Compilar e Rodar
+## 🛠️ Solução de Problemas Comuns (Troubleshooting)
 
-Após clonar o repositório e abrir o terminal (ou PowerShell configurado) na pasta raiz do projeto, execute os comandos abaixo:
+* **Erro `undefined reference to ...` ou `file format not recognized` ao rodar `make`:**
+  - **Causa:** O terminal está utilizando um compilador GCC de **32 bits (`i686`)** instalado globalmente na máquina (ex.: `C:\w64devkit\bin\gcc.exe`), que é incompatível com a biblioteca `lib/libraylib.a` do projeto (compilada em **64 bits `x86_64`**).
+  - **Solução:** Rode `.\setup.ps1` antes de rodar `make` na mesma janela do PowerShell. Ele colocará o compilador 64-bit local na frente do `PATH`.
 
-### 1. Gerar os arquivos de configuração do build
-* **No Windows (usando MinGW do w64devkit):**
-  ```bash
-  cmake -G "MinGW Makefiles" -B build
-  ```
-* **No Linux / macOS:**
-  ```bash
-  cmake -B build
-  ```
+* **Janela abre sem texturas ou modelos não aparecem (`Failed to open file assets/...`):**
+  - **Causa:** O executável foi iniciado de fora da pasta `TCC/` (por exemplo, entrando em `cd build` e rodando `.\MeuTCC.exe`).
+  - **Solução:** Execute sempre a partir da raiz do projeto (`TCC/`), usando `.\build\MeuTCC.exe`.
 
-### 2. Compilar o código fonte
-```bash
-cmake --build build
-```
-
-### 3. Executar o binário gerado
-* **No Windows:**
+* **Recompilar do zero (limpar arquivos de build):**
   ```powershell
-  .\build\MeuTCC.exe
+  make clean
+  make
   ```
-* **No Linux / macOS:**
-  ```bash
-  ./build/MeuTCC
-  ```
-
----
-
-## 📄 Arquivos de Configuração Base
-
-### `CMakeLists.txt`
-```cmake
-cmake_minimum_required(VERSION 3.14)
-project(MeuTCC C)
-
-set(CMAKE_C_STANDARD 99)
-
-include(FetchContent)
-FetchContent_Declare(
-    raylib
-    GIT_REPOSITORY [https://github.com/raysan5/raylib.git](https://github.com/raysan5/raylib.git)
-    GIT_TAG master
-)
-FetchContent_MakeAvailable(raylib)
-
-add_executable(${PROJECT_NAME} src/main.c)
-target_link_libraries(${PROJECT_NAME} PRIVATE raylib)
-```
-
-### `.gitignore`
-```text
-build/
-.cache/
-```
