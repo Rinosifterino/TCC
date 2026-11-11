@@ -1,4 +1,4 @@
 #pragma once
 #include "raylib.h"
 
-int DrawGUI(int activeModelIndex, bool *useCelShading, bool *orbitalLight, bool *highlightEnabled);
+int DrawGUI(int activeModelIndex, bool *useCelShading, bool *orbitalLight, bool *highlightEnabled, bool *shadowsEnabled);

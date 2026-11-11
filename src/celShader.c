@@ -2,7 +2,7 @@
 #include "rlgl.h"
 
 // =========================================
-// SHADERS DO CEL SHADING
+// SHADERS DO CEL SHADING (COM SHADOW MAPPING)
 // =========================================
 const char *celVertexShader =
     "#version 330\n"
@@ -11,16 +11,17 @@ const char *celVertexShader =
     "in vec3 vertexNormal;\n"
     "in vec4 vertexColor;\n"
     "uniform mat4 mvp;\n"
-    "uniform mat4 matModel;\n" // Matriz do modelo
+    "uniform mat4 matModel;\n"  // Matriz do modelo
+    "uniform mat4 matNormal;\n" // Matriz de transformação das normais
     "out vec2 fragTexCoord;\n"
     "out vec4 fragColor;\n"
     "out vec3 fragNormal;\n"
-    "out vec3 fragPosition;\n" // Posição real 3D
+    "out vec3 fragPosition;\n" // Posição real 3D no mundo
     "void main()\n"
     "{\n"
     "    fragTexCoord = vertexTexCoord;\n"
     "    fragColor = vertexColor;\n"
-    "    fragNormal = normalize(vertexNormal);\n"
+    "    fragNormal = normalize(vec3(matNormal * vec4(vertexNormal, 0.0)));\n"
     "    fragPosition = vec3(matModel * vec4(vertexPosition, 1.0));\n"
     "    gl_Position = mvp * vec4(vertexPosition, 1.0);\n"
     "}\n";
@@ -35,31 +36,61 @@ const char *celFragmentShader =
     "uniform vec3 viewPos;\n"
     "uniform vec4 colDiffuse;\n"
     "uniform sampler2D texture0;\n"
-    "uniform int useHighlight;\n" // <-- NOVA VARIÁVEL GLSL
+    "uniform int useHighlight;\n"
+    "uniform mat4 lightVP;\n"
+    "uniform sampler2D shadowMap;\n"
+    "uniform int useShadows;\n"
+    "uniform int shadowMapResolution;\n"
     "out vec4 finalColor;\n"
+    "\n"
+    "float CalculateShadow(vec3 fragPosWorld, vec3 normal, vec3 lightDir)\n"
+    "{\n"
+    "    vec4 fragPosLightSpace = lightVP * vec4(fragPosWorld, 1.0);\n"
+    "    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;\n"
+    "    projCoords = projCoords * 0.5 + 0.5;\n"
+    "    if (projCoords.z > 1.0 || projCoords.x < 0.0 || projCoords.x > 1.0 || projCoords.y < 0.0 || projCoords.y > 1.0)\n"
+    "        return 0.0;\n"
+    "    float bias = max(0.0025 * (1.0 - dot(normal, lightDir)), 0.0005);\n"
+    "    float currentDepth = projCoords.z;\n"
+    "    vec2 texelSize = 1.0 / vec2(float(shadowMapResolution));\n"
+    "    int shadowCounter = 0;\n"
+    "    for (int x = -1; x <= 1; x++)\n"
+    "    {\n"
+    "        for (int y = -1; y <= 1; y++)\n"
+    "        {\n"
+    "            float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;\n"
+    "            if (currentDepth - bias > pcfDepth) shadowCounter++;\n"
+    "        }\n"
+    "    }\n"
+    "    return float(shadowCounter) / 9.0;\n"
+    "}\n"
+    "\n"
     "void main()\n"
     "{\n"
     "    vec3 normal = normalize(fragNormal);\n"
     "    vec3 lightDir = normalize(lightDirection);\n"
-    "    float diffuse = max(dot(normal, lightDir), 0.0);\n"
-    "    if (diffuse > 0.75) diffuse = 1.0;\n"
-    "    else diffuse = 0.50;\n"
-    //"    else diffuse = 0.20;\n"
-    "    float ambient = 0.15;\n"
-    
-    // CÁLCULO DO GLOSSY DINÂMICO
+    "    float NdotL = max(dot(normal, lightDir), 0.0);\n"
+    "\n"
+    "    float shadow = (useShadows == 1) ? CalculateShadow(fragPosition, normal, lightDir) : 0.0;\n"
+    "    float effectiveLight = (shadow > 0.5) ? 0.0 : NdotL;\n"
+    "\n"
+    "    // Cel Shading de 2 tons: Tom Claro (1.0) e Tom de Sombra (0.5)\n"
+    "    float diffuse = (effectiveLight > 0.2) ? 0.5 : 0.0;\n"
+    "    float ambient = 0.5;\n"
+    "\n"
+    "    // CÁLCULO DO GLOSSY DINÂMICO (apenas em faces iluminadas e fora da sombra)\n"
     "    float specular = 0.0;\n"
-    "    if (useHighlight == 1) {\n"
+    "    if (useHighlight == 1 && effectiveLight > 0.0) {\n"
     "        vec3 viewDir = normalize(viewPos - fragPosition);\n"
     "        vec3 reflectDir = reflect(-lightDir, normal);\n"
     "        specular = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);\n"
     "        if (specular > 0.45) specular = 1.0;\n"
     "        else specular = 0.0;\n"
     "    }\n"
-    
-    "    vec4 albedo = texture(texture0, fragTexCoord) * colDiffuse;\n"
+    "\n"
+    "    vec4 albedo = texture(texture0, fragTexCoord) * fragColor * colDiffuse;\n"
     "    vec3 color = albedo.rgb * (ambient + diffuse);\n"
-    "    color += vec3(specular);\n"
+    "    color = min(color + vec3(specular), vec3(1.0));\n"
     "    finalColor = vec4(color, albedo.a);\n"
     "}\n";
 
@@ -100,6 +131,26 @@ Shader LoadCelShader(void)
 Shader LoadOutlineShader(void)
 {
     return LoadShaderFromMemory(outlineVertexShader, outlineFragmentShader);
+}
+
+void SetShaderShadowMap(Shader shader, Matrix lightVP, unsigned int shadowMapTexId, int shadowMapResolution, bool shadowsEnabled)
+{
+    int lightVPLoc = GetShaderLocation(shader, "lightVP");
+    int shadowMapLoc = GetShaderLocation(shader, "shadowMap");
+    int useShadowsLoc = GetShaderLocation(shader, "useShadows");
+    int resLoc = GetShaderLocation(shader, "shadowMapResolution");
+
+    int useShadowsVal = shadowsEnabled ? 1 : 0;
+    SetShaderValueMatrix(shader, lightVPLoc, lightVP);
+    SetShaderValue(shader, useShadowsLoc, &useShadowsVal, SHADER_UNIFORM_INT);
+    SetShaderValue(shader, resLoc, &shadowMapResolution, SHADER_UNIFORM_INT);
+
+    int textureSlot = 10;
+    rlEnableShader(shader.id);
+    rlActiveTextureSlot(textureSlot);
+    rlEnableTexture(shadowMapTexId);
+    rlSetUniform(shadowMapLoc, &textureSlot, RL_SHADER_UNIFORM_SAMPLER2D, 1);
+    rlActiveTextureSlot(0);
 }
 
 void DrawModelCelShaded(Model model, Vector3 position, float scale, Shader celShader, Shader outlineShader, Vector3 lightDirection, Vector3 viewPosition, Color outlineColor, float outlineThickness, bool highlightEnabled)

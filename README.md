@@ -107,8 +107,11 @@ Durante a execução do `MeuTCC`:
 | **Scroll do Mouse** | Zoom in / Zoom out |
 | **`1`** | Alterna para o modo **Lambert Shading** (Default) |
 | **`2`** | Alterna para o modo **Cel Shading** (com contorno) |
+| **`8`** | Liga / Desliga o **Shadow Mapping** (sombras projetadas) |
 | **`9`** | Liga / Desliga a **Luz Orbital** (luz girando ou estática) |
 | **`0`** | Liga / Desliga o **Highlight** especular (no modo Cel Shading) |
+| **`I` / `K`** | Sobe / Abaixa a **altura da fonte de luz** em tempo real |
+| **`J` / `L`** | Gira a **fonte de luz** horizontalmente ao redor do modelo |
 | **`TAB`** | Avança para o próximo modelo 3D (Esfera → Árvore → Link) |
 | **`Ctrl + TAB`** | Volta para o modelo 3D anterior |
 | **`ESC`** | Fecha a aplicação |

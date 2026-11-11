@@ -4,6 +4,14 @@
 Shader LoadCelShader(void);
 Shader LoadOutlineShader(void);
 
+void SetShaderShadowMap(
+    Shader shader,
+    Matrix lightVP,
+    unsigned int shadowMapTexId,
+    int shadowMapResolution,
+    bool shadowsEnabled
+);
+
 void DrawModelCelShaded(
     Model model, 
     Vector3 position, 
